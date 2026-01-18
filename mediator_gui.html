@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>중재자 패턴 - 채팅방 시뮬레이터</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 0.9em;
+        }
+
+        .main-content {
+            display: flex;
+            height: 400px;
+        }
+
+        .chat-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #e0e0e0;
+        }
+
+        .chat-section h3 {
+            padding: 12px 15px;
+            background: #f5f5f5;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 0.95em;
+            color: #555;
+        }
+
+        #chat-log {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            background: #fafafa;
+        }
+
+        .message {
+            margin-bottom: 8px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+
+        .message.system {
+            background: #f0f0f0;
+            color: #666666;
+            border-left: 3px solid #666666;
+        }
+
+        .message.user {
+            background: #e3f2fd;
+            color: #0066CC;
+            border-left: 3px solid #0066CC;
+        }
+
+        .timestamp {
+            color: #999999;
+            font-size: 0.85em;
+            margin-right: 8px;
+        }
+
+        .user-section {
+            width: 200px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-section h3 {
+            padding: 12px 15px;
+            background: #f5f5f5;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 0.95em;
+            color: #555;
+        }
+
+        #user-list {
+            flex: 1;
+            list-style: none;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        #user-list li {
+            padding: 8px 12px;
+            margin-bottom: 5px;
+            background: #f9f9f9;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        #user-list li:hover {
+            background: #e3f2fd;
+        }
+
+        #user-list li.selected {
+            background: #bbdefb;
+        }
+
+        .user-buttons {
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .input-section {
+            padding: 15px;
+            background: #f5f5f5;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .sender-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            gap: 10px;
+        }
+
+        .sender-row label {
+            font-size: 0.9em;
+            color: #555;
+        }
+
+        #user-select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9em;
+            min-width: 150px;
+        }
+
+        .message-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        #message-input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.95em;
+        }
+
+        #message-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s;
+        }
+
+        #send-btn {
+            background: #667eea;
+            color: white;
+        }
+
+        #send-btn:hover {
+            background: #5a6fd6;
+        }
+
+        #add-user-btn {
+            background: #4caf50;
+            color: white;
+        }
+
+        #add-user-btn:hover {
+            background: #43a047;
+        }
+
+        #remove-user-btn {
+            background: #f44336;
+            color: white;
+        }
+
+        #remove-user-btn:hover {
+            background: #e53935;
+        }
+
+        .pattern-info {
+            padding: 15px;
+            background: #fff3e0;
+            border-top: 1px solid #ffe0b2;
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .pattern-info strong {
+            color: #e65100;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>GoF 중재자 패턴 - 채팅방 시뮬레이터</h1>
+            <p>Mediator Pattern Demo</p>
+        </div>
+
+        <div class="main-content">
+            <div class="chat-section">
+                <h3>채팅 로그</h3>
+                <div id="chat-log"></div>
+            </div>
+
+            <div class="user-section">
+                <h3>접속 사용자</h3>
+                <ul id="user-list"></ul>
+                <div class="user-buttons">
+                    <button id="add-user-btn">사용자 추가</button>
+                    <button id="remove-user-btn">사용자 제거</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-section">
+            <div class="sender-row">
+                <label for="user-select">발신자:</label>
+                <select id="user-select"></select>
+            </div>
+            <div class="message-row">
+                <input type="text" id="message-input" placeholder="메시지를 입력하세요...">
+                <button id="send-btn">전송</button>
+            </div>
+        </div>
+
+        <div class="pattern-info">
+            <strong>중재자 패턴:</strong>
+            Mediator(ChatRoom)가 모든 Colleague(User) 간의 통신을 중재합니다.
+            User들은 서로 직접 통신하지 않고, ChatRoom을 통해서만 메시지를 주고받습니다.
+            이로써 M:N 관계가 M:1 관계로 단순화되어 느슨한 결합을 달성합니다.
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // 1. ChatRoom 클래스 (Mediator)
+        // ============================================================
+        class ChatRoom {
+            constructor(guiCallback = null) {
+                this.users = [];
+                this.guiCallback = guiCallback;
+            }
+
+            registerUser(user) {
+                if (!this.users.find(u => u.name === user.name)) {
+                    this.users.push(user);
+                    this.notify(null, 'join', { userName: user.name });
+                }
+            }
+
+            unregisterUser(user) {
+                const index = this.users.findIndex(u => u.name === user.name);
+                if (index !== -1) {
+                    this.users.splice(index, 1);
+                    this.notify(null, 'leave', { userName: user.name });
+                }
+            }
+
+            notify(sender, event, data) {
+                if (event === 'message') {
+                    this.broadcast(sender, data.message);
+                } else if (event === 'join') {
+                    if (this.guiCallback) {
+                        this.guiCallback(`[시스템] ${data.userName}님이 입장하셨습니다.`, 'system');
+                    }
+                } else if (event === 'leave') {
+                    if (this.guiCallback) {
+                        this.guiCallback(`[시스템] ${data.userName}님이 퇴장하셨습니다.`, 'system');
+                    }
+                }
+            }
+
+            broadcast(sender, message) {
+                this.users.forEach(user => {
+                    user.receive(sender.name, message);
+                });
+
+                if (this.guiCallback) {
+                    this.guiCallback(`[${sender.name}] ${message}`, 'user');
+                }
+            }
+
+            getUserNames() {
+                return this.users.map(user => user.name);
+            }
+
+            getUserByName(name) {
+                return this.users.find(user => user.name === name) || null;
+            }
+        }
+
+        // ============================================================
+        // 2. User 클래스 (Colleague)
+        // ============================================================
+        class User {
+            constructor(name, chatroom) {
+                this.name = name;
+                this.chatroom = chatroom;
+                this.messages = [];
+            }
+
+            send(message) {
+                this.chatroom.notify(this, 'message', { message });
+            }
+
+            receive(senderName, message) {
+                this.messages.push({
+                    sender: senderName,
+                    message: message,
+                    timestamp: new Date()
+                });
+            }
+        }
+
+        // ============================================================
+        // 3. DOM 요소 참조
+        // ============================================================
+        const chatLog = document.getElementById('chat-log');
+        const userList = document.getElementById('user-list');
+        const userSelect = document.getElementById('user-select');
+        const messageInput = document.getElementById('message-input');
+        const sendBtn = document.getElementById('send-btn');
+        const addUserBtn = document.getElementById('add-user-btn');
+        const removeUserBtn = document.getElementById('remove-user-btn');
+
+        let chatroom = null;
+        let selectedUserForRemoval = null;
+
+        // ============================================================
+        // 4. 유틸리티 함수
+        // ============================================================
+        function getTimestamp() {
+            const now = new Date();
+            const h = String(now.getHours()).padStart(2, '0');
+            const m = String(now.getMinutes()).padStart(2, '0');
+            const s = String(now.getSeconds()).padStart(2, '0');
+            return `[${h}:${m}:${s}]`;
+        }
+
+        function updateChatLog(message, type = 'user') {
+            const div = document.createElement('div');
+            div.className = `message ${type}`;
+
+            const timestamp = document.createElement('span');
+            timestamp.className = 'timestamp';
+            timestamp.textContent = getTimestamp();
+
+            div.appendChild(timestamp);
+            div.appendChild(document.createTextNode(message));
+
+            chatLog.appendChild(div);
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
+
+        function updateUserList() {
+            userList.innerHTML = '';
+            userSelect.innerHTML = '';
+
+            const names = chatroom.getUserNames();
+
+            names.forEach(name => {
+                // 리스트 항목
+                const li = document.createElement('li');
+                li.textContent = `● ${name}`;
+                li.addEventListener('click', () => {
+                    document.querySelectorAll('#user-list li').forEach(el => el.classList.remove('selected'));
+                    li.classList.add('selected');
+                    selectedUserForRemoval = name;
+                });
+                userList.appendChild(li);
+
+                // 셀렉트 옵션
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                userSelect.appendChild(option);
+            });
+        }
+
+        // ============================================================
+        // 5. 이벤트 핸들러
+        // ============================================================
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            const senderName = userSelect.value;
+
+            if (!message) return;
+            if (!senderName) {
+                alert('발신자를 선택하세요.');
+                return;
+            }
+
+            const user = chatroom.getUserByName(senderName);
+            if (user) {
+                user.send(message);
+                messageInput.value = '';
+                messageInput.focus();
+            }
+        }
+
+        function addUser() {
+            const name = prompt('새 사용자 이름을 입력하세요:');
+
+            if (!name || !name.trim()) return;
+
+            if (chatroom.getUserByName(name.trim())) {
+                alert(`'${name.trim()}' 사용자가 이미 존재합니다.`);
+                return;
+            }
+
+            const user = new User(name.trim(), chatroom);
+            chatroom.registerUser(user);
+            updateUserList();
+        }
+
+        function removeUser() {
+            if (!selectedUserForRemoval) {
+                alert('제거할 사용자를 목록에서 선택하세요.');
+                return;
+            }
+
+            const user = chatroom.getUserByName(selectedUserForRemoval);
+            if (user) {
+                chatroom.unregisterUser(user);
+                selectedUserForRemoval = null;
+                updateUserList();
+            }
+        }
+
+        // ============================================================
+        // 6. 초기화
+        // ============================================================
+        function init() {
+            chatroom = new ChatRoom(updateChatLog);
+
+            // 기본 사용자 3명 추가
+            ['Alice', 'Bob', 'Charlie'].forEach(name => {
+                const user = new User(name, chatroom);
+                chatroom.registerUser(user);
+            });
+
+            updateUserList();
+
+            // 이벤트 바인딩
+            sendBtn.addEventListener('click', sendMessage);
+            addUserBtn.addEventListener('click', addUser);
+            removeUserBtn.addEventListener('click', removeUser);
+
+            messageInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+
+            messageInput.focus();
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
